@@ -1,0 +1,1053 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="description" content="Glass and cut size calculator for prehung door units." />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <title>Glass Measures</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --panel:#111c33;
+      --panel2:#17233d;
+      --text:#eef4ff;
+      --muted:#aab7cf;
+      --line:#29395c;
+      --accent:#7dd3fc;
+      --accent2:#bae6fd;
+      --warn:#fbbf24;
+      --good:#86efac;
+      --bad:#fca5a5;
+      --shadow:0 18px 40px rgba(0,0,0,.25);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:radial-gradient(circle at top left,#172554 0,#0f172a 42%,#08111f 100%);
+      color:var(--text);
+      min-height:100vh;
+    }
+    .wrap{
+      width:min(1120px,100%);
+      margin:0 auto;
+      padding:18px;
+    }
+    header{
+      display:flex;
+      gap:14px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:16px;
+    }
+    .brand{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .logo{
+      width:48px;height:48px;border-radius:15px;
+      background:linear-gradient(135deg,#38bdf8,#0f172a);
+      display:grid;place-items:center;
+      box-shadow:var(--shadow);
+      font-weight:900;
+      letter-spacing:-.08em;
+    }
+    h1{font-size:1.45rem;margin:0;letter-spacing:-.02em}
+    .sub{color:var(--muted);font-size:.92rem;margin-top:2px}
+    .grid{
+      display:grid;
+      grid-template-columns:380px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    .card{
+      background:rgba(17,28,51,.92);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card h2{
+      margin:0;
+      padding:14px 16px;
+      font-size:1rem;
+      background:rgba(255,255,255,.035);
+      border-bottom:1px solid var(--line);
+    }
+    .body{padding:16px}
+    label{
+      display:block;
+      color:var(--muted);
+      font-size:.82rem;
+      margin:0 0 6px;
+    }
+    input,select,button,textarea{
+      width:100%;
+      font:inherit;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#0b1426;
+      color:var(--text);
+      padding:12px 12px;
+      outline:none;
+    }
+    input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+    .row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-bottom:12px;
+    }
+    .row3{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:10px;
+      margin-bottom:12px;
+    }
+    .field{margin-bottom:12px}
+    button{
+      cursor:pointer;
+      background:linear-gradient(135deg,#0284c7,#075985);
+      border-color:#38bdf8;
+      font-weight:800;
+      color:white;
+    }
+    button.secondary{
+      background:#0b1426;
+      border-color:var(--line);
+      font-weight:700;
+    }
+    button.ghost{
+      background:transparent;
+      border-color:#334155;
+      color:var(--accent2);
+    }
+    .btnrow{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    .tabs{
+      display:flex;
+      gap:8px;
+      padding:10px;
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.025);
+      overflow:auto;
+    }
+    .tab{
+      width:auto;
+      min-width:92px;
+      padding:9px 11px;
+      border-radius:999px;
+      background:#0b1426;
+      border:1px solid var(--line);
+      color:var(--muted);
+      font-weight:800;
+      white-space:nowrap;
+    }
+    .tab.active{
+      color:#06111f;
+      background:var(--accent);
+      border-color:var(--accent);
+    }
+    .results{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    .metric{
+      border:1px solid var(--line);
+      background:rgba(11,20,38,.72);
+      border-radius:16px;
+      padding:13px;
+      min-height:82px;
+    }
+    .metric .k{color:var(--muted);font-size:.78rem;margin-bottom:5px}
+    .metric .v{font-size:1.22rem;font-weight:900;letter-spacing:-.02em}
+    .metric .r{font-size:.78rem;color:var(--muted);margin-top:7px;line-height:1.3}
+    .full{grid-column:1/-1}
+    .ok{color:var(--good)}
+    .warn{color:var(--warn)}
+    .bad{color:var(--bad)}
+    canvas{
+      width:100%;
+      height:320px;
+      background:#06111f;
+      border:1px solid var(--line);
+      border-radius:16px;
+      display:block;
+    }
+    pre{
+      white-space:pre-wrap;
+      word-break:break-word;
+      background:#071122;
+      border:1px solid var(--line);
+      color:#e5f6ff;
+      border-radius:16px;
+      padding:14px;
+      margin:0;
+      line-height:1.45;
+      font-size:.9rem;
+    }
+    .note{
+      background:rgba(251,191,36,.09);
+      border:1px solid rgba(251,191,36,.35);
+      color:#fde68a;
+      border-radius:15px;
+      padding:11px 12px;
+      line-height:1.35;
+      font-size:.9rem;
+      margin-top:12px;
+    }
+    .hidden{display:none}
+    .small{font-size:.82rem;color:var(--muted);line-height:1.35}
+
+
+    .savedList{
+      display:grid;
+      gap:10px;
+    }
+    .savedItem{
+      border:1px solid var(--line);
+      background:rgba(11,20,38,.72);
+      border-radius:16px;
+      padding:12px;
+    }
+    .savedHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .savedTitle{
+      font-weight:900;
+      letter-spacing:-.01em;
+    }
+    .savedMeta{
+      color:var(--muted);
+      font-size:.78rem;
+      line-height:1.35;
+      margin-top:2px;
+    }
+    .savedBtns{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:10px;
+    }
+    .savedBtns button{
+      padding:9px 10px;
+      border-radius:12px;
+      font-size:.86rem;
+    }
+
+    .phoneShell{
+      max-width:390px;
+      margin:0 auto;
+      border:1px solid var(--line);
+      border-radius:30px;
+      background:#030712;
+      padding:12px;
+      box-shadow:var(--shadow);
+    }
+    .phoneScreen{
+      border-radius:22px;
+      overflow:hidden;
+      background:linear-gradient(180deg,#0f172a,#071122);
+      border:1px solid #1f2a44;
+    }
+    .phoneTop{
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .phoneTitle{font-weight:900;font-size:.98rem}
+    .phonePill{
+      color:#06111f;
+      background:var(--accent);
+      border-radius:999px;
+      padding:5px 8px;
+      font-size:.7rem;
+      font-weight:900;
+    }
+    .phoneContent{padding:12px}
+    .phoneMetric{
+      background:rgba(17,28,51,.95);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+      margin-bottom:10px;
+    }
+    .phoneMetric .k{font-size:.74rem;color:var(--muted);margin-bottom:4px}
+    .phoneMetric .v{font-size:1.08rem;font-weight:900}
+    .phoneActions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      padding:12px;
+      border-top:1px solid var(--line);
+      background:rgba(255,255,255,.025);
+    }
+
+    @media (max-width:900px){
+      .grid{grid-template-columns:1fr}
+      .results{grid-template-columns:1fr}
+      header{align-items:flex-start}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">GM</div>
+        <div>
+          <h1>Glass Measures</h1>
+          <div class="sub">Prehung door glass + cut calculator</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Inputs</h2>
+        <div class="body">
+          <div class="field">
+            <label>Entry name / job label</label>
+            <input id="entryName" value="" placeholder="Example: Smith front door">
+          </div>
+
+          <div class="row">
+            <div>
+              <label>Rough opening width</label>
+              <input id="roW" value="69" inputmode="decimal">
+            </div>
+            <div>
+              <label>Rough opening height</label>
+              <input id="roH" value="95" inputmode="decimal">
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>Configuration</label>
+              <select id="config">
+                <option value="D">D - single door</option>
+                <option value="DD">DD - double door</option>
+                <option value="SD">SD - sidelight + door</option>
+                <option value="DS">DS - door + sidelight</option>
+                <option value="SDS" selected>SDS - sidelight + door + sidelight</option>
+                <option value="T/D">T/D - transom over single door</option>
+                <option value="T/DD">T/DD - transom over double door</option>
+                <option value="T/SD">T/SD - transom over sidelight + door</option>
+                <option value="T/DS">T/DS - transom over door + sidelight</option>
+                <option value="T/SDS">T/SDS - transom over sidelight + door + sidelight</option>
+              </select>
+            </div>
+            <div>
+              <label>Swing</label>
+              <select id="swing">
+                <option value="inswing" selected>Inswing</option>
+                <option value="outswing">Outswing</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>Door material</label>
+              <select id="material">
+                <option value="fiberglass" selected>Fiberglass</option>
+                <option value="wood">Wood</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div>
+              <label>Nominal slab size</label>
+              <select id="nominal">
+                <option value="30x68" selected>3'0" x 6'8"</option>
+                <option value="30x80">3'0" x 8'0"</option>
+                <option value="36x68">3'6" x 6'8"</option>
+                <option value="36x80">3'6" x 8'0"</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="customBox" class="row hidden">
+            <div>
+              <label>Custom slab width</label>
+              <input id="customW" value="36">
+            </div>
+            <div>
+              <label>Custom slab height</label>
+              <input id="customH" value="80">
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>T-bar override</label>
+              <select id="tbarMode">
+                <option value="auto" selected>Auto</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div id="tbarCustomBox" class="hidden">
+              <label>Custom T-bar size</label>
+              <input id="tbarCustom" value="2 1/4">
+            </div>
+          </div>
+
+          <div class="btnrow">
+            <button id="calcBtn">Calculate</button>
+            <button class="secondary" id="testBtn">Load T/SDS test</button>
+          </div>
+          <div class="btnrow">
+            <button class="ghost" id="copyBtn">Copy cut list</button>
+            <button class="ghost" id="saveBtn">Save entry</button>
+          </div>
+          <div class="btnrow">
+            <button class="ghost" id="resetBtn">Reset</button>
+            <button class="ghost" id="clearNameBtn">Clear name</button>
+          </div>
+
+          <div class="note">
+            Locked rules are used directly. Single-door-with-transom width/height is flagged as estimated until confirmed.
+          </div>
+          <div class="note" style="background:rgba(125,211,252,.08);border-color:rgba(125,211,252,.35);color:#dff7ff;">
+            Desktop install: deploy this folder to Vercel or open through a local web server, then use the browser install icon. Direct file-open mode may not show install.
+          </div>
+
+        </div>
+      </section>
+
+      <main class="card">
+        <div class="tabs">
+          <button class="tab active" data-tab="summary">Summary</button>
+          <button class="tab" data-tab="visual">Canvas</button>
+          <button class="tab" data-tab="phone">Phone scale</button>
+          <button class="tab" data-tab="saved">Saved</button>
+          <button class="tab" data-tab="rules">Rules</button>
+          <button class="tab" data-tab="copy">Cut list</button>
+        </div>
+
+        <section id="summary" class="body tabPane">
+          <div class="results" id="metrics"></div>
+        </section>
+
+        <section id="visual" class="body tabPane hidden">
+          <canvas id="diagram" width="900" height="460"></canvas>
+          <div class="small" style="margin-top:10px">Simple visual only. Use the calculated measurements for shop work.</div>
+        </section>
+
+
+        <section id="phone" class="body tabPane hidden">
+          <div class="phoneShell">
+            <div class="phoneScreen">
+              <div class="phoneTop">
+                <div>
+                  <div class="phoneTitle">Glass Measures</div>
+                  <div class="small" id="phoneSubtitle">Current unit</div>
+                </div>
+                <div class="phonePill">PHONE</div>
+              </div>
+              <div class="phoneContent" id="phoneContent"></div>
+              <div class="phoneActions">
+                <button class="ghost" id="phoneCopyBtn" type="button">Copy</button>
+                <button class="ghost" id="phoneCalcBtn" type="button">Refresh</button>
+              </div>
+            </div>
+          </div>
+          <div class="small" style="margin-top:10px;text-align:center;">Phone-scale view mirrors the main result in a narrow install-style layout.</div>
+        </section>
+
+
+        <section id="saved" class="body tabPane hidden">
+          <div class="btnrow" style="margin-top:0;margin-bottom:12px;">
+            <button id="saveFromTabBtn" type="button">Save current</button>
+            <button class="ghost" id="refreshSavedBtn" type="button">Refresh list</button>
+          </div>
+          <div id="savedList" class="savedList"></div>
+          <div class="note">
+            Saved entries stay on this device/browser only. They are not shared or uploaded.
+          </div>
+        </section>
+
+        <section id="rules" class="body tabPane hidden">
+          <pre id="ruleText"></pre>
+        </section>
+
+        <section id="copy" class="body tabPane hidden">
+          <pre id="cutList"></pre>
+        </section>
+      </main>
+    </div>
+  </div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const DOOR_SIZES = {
+  fiberglass: {
+    "30x68": { w: 35.75, h: 79, label: `Fiberglass 3'0" x 6'8"` },
+    "30x80": { w: 35.75, h: 95, label: `Fiberglass 3'0" x 8'0"` },
+    "36x68": { w: 41.75, h: 79, label: `Fiberglass 3'6" x 6'8"` },
+    "36x80": { w: 41.75, h: 95, label: `Fiberglass 3'6" x 8'0"` }
+  },
+  wood: {
+    "30x68": { w: 36, h: 80, label: `Wood 3'0" x 6'8"` },
+    "30x80": { w: 36, h: 96, label: `Wood 3'0" x 8'0"` },
+    "36x68": { w: 42, h: 80, label: `Wood 3'6" x 6'8"` },
+    "36x80": { w: 42, h: 96, label: `Wood 3'6" x 8'0"` }
+  }
+};
+
+function parseInches(raw){
+  if(raw == null) return NaN;
+  let s = String(raw).trim().replace(/"/g,"").replace(/in/gi,"");
+  if(!s) return NaN;
+  s = s.replace(/-/g," ");
+  const parts = s.split(/\s+/);
+  let total = 0;
+  for(const p of parts){
+    if(p.includes("/")){
+      const [a,b] = p.split("/").map(Number);
+      if(!isFinite(a)||!isFinite(b)||b===0) return NaN;
+      total += a/b;
+    } else {
+      const n = Number(p);
+      if(!isFinite(n)) return NaN;
+      total += n;
+    }
+  }
+  return total;
+}
+
+function fmt(x){
+  if(!isFinite(x)) return "—";
+  const sign = x < 0 ? "-" : "";
+  x = Math.abs(x);
+  const whole = Math.floor(x + 1e-9);
+  let frac = Math.round((x - whole) * 16);
+  let w = whole;
+  if(frac === 16){ w += 1; frac = 0; }
+  if(frac === 0) return `${sign}${w}"`;
+  const g = gcd(frac,16);
+  const n = frac/g, d = 16/g;
+  if(w === 0) return `${sign}${n}/${d}"`;
+  return `${sign}${w}-${n}/${d}"`;
+}
+
+function gcd(a,b){ return b ? gcd(b, a % b) : a; }
+
+function hasTransom(config){ return config.startsWith("T/"); }
+function hasSidelight(config){ return ["SD","DS","SDS","T/SD","T/DS","T/SDS"].includes(config); }
+function sideCount(config){ return config.includes("SDS") ? 2 : (config.includes("SD") || config.includes("DS") ? 1 : 0); }
+function isDouble(config){ return config.includes("DD"); }
+function isSingleDoorTransom(config){ return config === "T/D"; }
+
+function getSlab(){
+  const material = $("material").value;
+  if(material === "custom"){
+    return {
+      w: parseInches($("customW").value),
+      h: parseInches($("customH").value),
+      label: "Custom slab"
+    };
+  }
+  return DOOR_SIZES[material][$("nominal").value];
+}
+
+function autoTbar(config){
+  if(isSingleDoorTransom(config)) return { size: 1.5, reason: "Single door with transom uses 1-1/2 inch T-bar." };
+  if(hasSidelight(config) || config === "T/DD") return { size: 2.25, reason: "Sidelight units and double doors with transoms use 2-1/4 inch T-bars." };
+  return { size: 0, reason: "No T-bar required for this configuration." };
+}
+
+function calculate(){
+  const roW = parseInches($("roW").value);
+  const roH = parseInches($("roH").value);
+  const config = $("config").value;
+  const swing = $("swing").value;
+  const slab = getSlab();
+  const tbar = $("tbarMode").value === "custom"
+    ? { size: parseInches($("tbarCustom").value), reason: "Custom T-bar override." }
+    : autoTbar(config);
+
+  const entryName = $("entryName") ? $("entryName").value.trim() : "";
+  const result = {
+    entryName, roW, roH, config, swing, slab, tbar,
+    warnings: [],
+    metrics: [],
+    rules: [],
+    cutLines: []
+  };
+
+  if(!isFinite(roW) || !isFinite(roH) || !isFinite(slab.w) || !isFinite(slab.h)){
+    result.warnings.push("Check input values. One or more measurements could not be read.");
+    render(result);
+    return result;
+  }
+
+  const jambLeg = roH - 0.5;
+  result.jambLeg = jambLeg;
+
+  let finalDoorH;
+  if(hasTransom(config)){
+    finalDoorH = slab.h;
+    result.rules.push("Transom units keep the selected slab height. Transom glass absorbs rough opening height changes.");
+  } else {
+    const doorDeduct = swing === "inswing" ? 2.25 : 2.5;
+    finalDoorH = jambLeg - doorDeduct;
+    result.rules.push(`Non-transom ${swing}: jamb leg height = RO height - 1/2"; final door height = jamb leg - ${fmt(doorDeduct)}.`);
+  }
+  result.finalDoorH = finalDoorH;
+
+  const cutDown = slab.h - finalDoorH;
+  result.cutDown = cutDown;
+
+  let finalDoorW = slab.w;
+  let headerW = null;
+  let ddHeader = null;
+
+  if(isDouble(config)){
+    ddHeader = slab.w + slab.w + (13/16) + 0.25;
+    headerW = ddHeader;
+    result.rules.push("Double door header = left slab + right slab + 13/16 inch astragal + 1/4 inch total gaps.");
+  } else if(config === "D" || config === "T/D") {
+    headerW = slab.w + 0.25;
+    result.rules.push("Single door header width is estimated as slab width + 1/4 inch gap. Confirm this rule.");
+    result.warnings.push("Single door header/transom width rule still needs confirmation.");
+  } else {
+    headerW = roW - 2;
+    result.rules.push("Sidelight unit actual cut header = RO width - 2 inches, allowing 1 inch for each outside jamb side.");
+  }
+  result.headerW = headerW;
+
+  let sidelightW = null, sidelightH = null;
+  const sc = sideCount(config);
+  if(sc > 0){
+    const glassClear = 0.125 * sc;
+    const totalTbars = tbar.size * sc;
+    sidelightW = (roW - 2 - totalTbars - slab.w - 0.25 - glassClear) / sc;
+    sidelightH = finalDoorH + 0.125;
+    result.sidelightW = sidelightW;
+    result.sidelightH = sidelightH;
+    result.rules.push(`Sidelight width = (RO width - 2 inch jamb allowances - T-bars - actual door width - 1/4 inch door gaps - 1/8 inch per glass unit) / sidelight count.`);
+    result.rules.push("Sidelight height = final door height + 1/8 inch.");
+  }
+
+  let transomW = null, transomH = null;
+  if(hasTransom(config)){
+    if(config === "T/DD"){
+      transomW = ddHeader - 0.125;
+      result.rules.push("T/DD transom width = double door header/T-bar above door - 1/8 inch.");
+    } else if(config === "T/D"){
+      transomW = headerW - 0.125;
+      result.rules.push("T/D transom width currently estimated as single door header - 1/8 inch. Confirm exact rule.");
+    } else {
+      transomW = roW - 2.125;
+      result.rules.push("T/SD, T/DS, and T/SDS transom width = RO width - 2-1/8 inches.");
+    }
+
+    if(config === "T/D"){
+      const deduct = swing === "inswing" ? 4.375 : 4.125;
+      transomH = roH - slab.h - deduct;
+      result.rules.push(`T/D transom height is estimated: RO height - actual door height - ${fmt(deduct)}. Confirm this exact single-door-transom deduction.`);
+      result.warnings.push("Single door with transom height deduction is estimated.");
+    } else {
+      const deduct = swing === "inswing" ? 5.125 : 4.875;
+      transomH = roH - slab.h - deduct;
+      result.rules.push(`${config} ${swing} transom height = RO height - actual door height - ${fmt(deduct)}.`);
+      if(swing === "outswing") result.rules.push("Outswing leaves 1/4 inch more room above because the door sits 1/4 inch lower in the frame.");
+    }
+    result.transomW = transomW;
+    result.transomH = transomH;
+  }
+
+  if(hasTransom(config) && transomH <= 0) result.warnings.push("Transom height is zero or negative. Selected slab is likely too tall for this RO.");
+  if(sc > 0 && sidelightW <= 0) result.warnings.push("Sidelight width is zero or negative. Check RO width, slab width, and configuration.");
+  if(!hasTransom(config) && cutDown > 2.5) result.warnings.push("Door cut-down is large. Confirm before cutting.");
+  if(cutDown < -0.0625 && !hasTransom(config)) result.warnings.push("Selected slab is shorter than calculated final non-transom door height.");
+
+  result.metrics.push(["Rough opening", `${fmt(roW)} x ${fmt(roH)}`, "Entered rough opening."]);
+  result.metrics.push(["Configuration", config, `Swing: ${swing}.`]);
+  result.metrics.push(["Actual slab", `${fmt(slab.w)} x ${fmt(slab.h)}`, slab.label]);
+  result.metrics.push(["T-bar", tbar.size ? fmt(tbar.size) : "None", tbar.reason]);
+  result.metrics.push(["Jamb legs", fmt(jambLeg), "RO height - 1/2 inch."]);
+  result.metrics.push(["Final door size", `${fmt(finalDoorW)} x ${fmt(finalDoorH)}`, hasTransom(config) ? "Transom unit keeps selected slab height." : "Calculated from jamb leg and swing."]);
+  if(!hasTransom(config)) result.metrics.push(["Door cut-down", cutDown > 0 ? fmt(cutDown) : "None", cutDown > 0 ? "Amount removed from slab height." : "No height cut-down shown."]);
+  result.metrics.push(["Actual cut header", fmt(headerW), isDouble(config) ? "Confirmed double door header rule." : (hasSidelight(config) ? "RO width - 2 inches; actual header cut between jamb legs." : "Single-door header rule needs confirmation.")]);
+  if(sc > 0) result.metrics.push([sc === 2 ? "Each sidelight glass" : "Sidelight glass", `${fmt(sidelightW)} x ${fmt(sidelightH)}`, `${sc} sidelight glass unit${sc>1?"s":""}.`]);
+  if(hasTransom(config)) result.metrics.push(["Transom glass", `${fmt(transomW)} x ${fmt(transomH)}`, config === "T/D" ? "Estimated T/D rule." : "Calculated from locked transom rules."]);
+  if(result.warnings.length) result.metrics.push(["Warnings", result.warnings.join(" "), "Review before cutting or ordering glass."]);
+
+  result.cutLines = buildCutList(result);
+  render(result);
+  return result;
+}
+
+function buildCutList(r){
+  const lines = [];
+  lines.push("GLASS MEASURES CUT LIST");
+  if(r.entryName) lines.push(`Entry: ${r.entryName}`);
+  lines.push("");
+  lines.push(`RO: ${fmt(r.roW)} W x ${fmt(r.roH)} H`);
+  lines.push(`Config: ${r.config}`);
+  lines.push(`Swing: ${r.swing}`);
+  lines.push(`Door: ${r.slab.label}`);
+  lines.push(`Actual slab: ${fmt(r.slab.w)} x ${fmt(r.slab.h)}`);
+  lines.push("");
+  lines.push("CUTS / SIZES");
+  lines.push(`Jamb legs: ${fmt(r.jambLeg)}`);
+  lines.push(`Actual cut header: ${fmt(r.headerW)}`);
+  lines.push(`Final door: ${fmt(r.slab.w)} x ${fmt(r.finalDoorH)}`);
+  if(!hasTransom(r.config)) lines.push(`Door cut-down: ${r.cutDown > 0 ? fmt(r.cutDown) : "None"}`);
+  if(r.sidelightW != null) lines.push(`${sideCount(r.config) === 2 ? "Each sidelight" : "Sidelight"} glass: ${fmt(r.sidelightW)} x ${fmt(r.sidelightH)}`);
+  if(r.transomW != null) lines.push(`Transom glass: ${fmt(r.transomW)} x ${fmt(r.transomH)}`);
+  lines.push("");
+  if(r.warnings.length){
+    lines.push("WARNINGS");
+    r.warnings.forEach(w => lines.push(`- ${w}`));
+    lines.push("");
+  }
+  lines.push("RULE NOTES");
+  r.rules.forEach(rule => lines.push(`- ${rule}`));
+  return lines;
+}
+
+function render(r){
+  const metrics = $("metrics");
+  metrics.innerHTML = "";
+  for(const [k,v,rule] of r.metrics || []){
+    const div = document.createElement("div");
+    div.className = "metric" + (k === "Warnings" ? " full" : "");
+    const cls = k === "Warnings" ? "warn" : "";
+    div.innerHTML = `<div class="k">${escapeHtml(k)}</div><div class="v ${cls}">${escapeHtml(v)}</div><div class="r">${escapeHtml(rule)}</div>`;
+    metrics.appendChild(div);
+  }
+  $("ruleText").textContent = (r.rules || []).map(x => "• " + x).join("\n") || "No rules yet.";
+  $("cutList").textContent = (r.cutLines || []).join("\n");
+  renderPhone(r);
+  renderSavedList();
+  draw(r);
+  window.lastResult = r;
+}
+
+
+
+const SAVE_KEY = "glassMeasuresSavedEntriesV1";
+
+function currentFormState(){
+  return {
+    entryName: $("entryName").value,
+    roW: $("roW").value,
+    roH: $("roH").value,
+    config: $("config").value,
+    swing: $("swing").value,
+    material: $("material").value,
+    nominal: $("nominal").value,
+    customW: $("customW").value,
+    customH: $("customH").value,
+    tbarMode: $("tbarMode").value,
+    tbarCustom: $("tbarCustom").value
+  };
+}
+
+function applyFormState(s){
+  if(!s) return;
+  $("entryName").value = s.entryName || "";
+  $("roW").value = s.roW || "";
+  $("roH").value = s.roH || "";
+  $("config").value = s.config || "SDS";
+  $("swing").value = s.swing || "inswing";
+  $("material").value = s.material || "fiberglass";
+  $("nominal").value = s.nominal || "30x68";
+  $("customW").value = s.customW || "36";
+  $("customH").value = s.customH || "80";
+  $("tbarMode").value = s.tbarMode || "auto";
+  $("tbarCustom").value = s.tbarCustom || "2 1/4";
+  toggleCustom();
+  calculate();
+}
+
+function getSavedEntries(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  }catch(e){
+    return [];
+  }
+}
+
+function setSavedEntries(list){
+  localStorage.setItem(SAVE_KEY, JSON.stringify(list));
+}
+
+function saveCurrentEntry(){
+  const calc = calculate();
+  const state = currentFormState();
+  const name = state.entryName.trim() || `${state.config} ${state.roW}" x ${state.roH}"`;
+  const entry = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    name,
+    savedAt: new Date().toISOString(),
+    state,
+    summary: {
+      config: calc.config,
+      swing: calc.swing,
+      ro: `${fmt(calc.roW)} x ${fmt(calc.roH)}`,
+      door: `${fmt(calc.slab.w)} x ${fmt(calc.finalDoorH)}`,
+      sidelight: calc.sidelightW != null ? `${fmt(calc.sidelightW)} x ${fmt(calc.sidelightH)}` : "",
+      transom: calc.transomW != null ? `${fmt(calc.transomW)} x ${fmt(calc.transomH)}` : ""
+    }
+  };
+  const list = getSavedEntries();
+  list.unshift(entry);
+  setSavedEntries(list.slice(0, 25));
+  renderSavedList();
+  alert("Entry saved on this device.");
+}
+
+function loadSavedEntry(id){
+  const entry = getSavedEntries().find(x => x.id === id);
+  if(entry) applyFormState(entry.state);
+}
+
+function deleteSavedEntry(id){
+  const list = getSavedEntries().filter(x => x.id !== id);
+  setSavedEntries(list);
+  renderSavedList();
+}
+
+function renderSavedList(){
+  const box = $("savedList");
+  if(!box) return;
+  const list = getSavedEntries();
+  if(!list.length){
+    box.innerHTML = `<div class="small">No saved entries yet. Use Save entry to keep a few calculations on this device.</div>`;
+    return;
+  }
+  box.innerHTML = list.map(entry => {
+    const s = entry.summary || {};
+    const date = entry.savedAt ? new Date(entry.savedAt).toLocaleString() : "";
+    const details = [
+      s.ro ? `RO ${s.ro}` : "",
+      s.config || "",
+      s.swing || "",
+      s.sidelight ? `SL ${s.sidelight}` : "",
+      s.transom ? `T ${s.transom}` : ""
+    ].filter(Boolean).join(" • ");
+    return `
+      <div class="savedItem">
+        <div class="savedHead">
+          <div>
+            <div class="savedTitle">${escapeHtml(entry.name || "Saved entry")}</div>
+            <div class="savedMeta">${escapeHtml(date)}</div>
+          </div>
+        </div>
+        <div class="small">${escapeHtml(details)}</div>
+        <div class="savedBtns">
+          <button type="button" onclick="loadSavedEntry('${entry.id}')">Load</button>
+          <button type="button" class="ghost" onclick="deleteSavedEntry('${entry.id}')">Delete</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+
+function renderPhone(r){
+  const box = $("phoneContent");
+  if(!box) return;
+  $("phoneSubtitle").textContent = `${r.config || ""} • ${r.swing || ""}`;
+  const items = [];
+  items.push(["RO", `${fmt(r.roW)} x ${fmt(r.roH)}`]);
+  items.push(["Door", `${fmt(r.slab?.w)} x ${fmt(r.finalDoorH)}`]);
+  items.push(["Jamb legs", fmt(r.jambLeg)]);
+  items.push(["Cut header", fmt(r.headerW)]);
+  if(r.sidelightW != null) items.push([sideCount(r.config) === 2 ? "Each sidelight" : "Sidelight", `${fmt(r.sidelightW)} x ${fmt(r.sidelightH)}`]);
+  if(r.transomW != null) items.push(["Transom", `${fmt(r.transomW)} x ${fmt(r.transomH)}`]);
+  if(r.warnings && r.warnings.length) items.push(["Warnings", r.warnings.join(" ")]);
+  box.innerHTML = items.map(([k,v]) => `<div class="phoneMetric"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v)}</div></div>`).join("");
+}
+
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+
+function draw(r){
+  const c = $("diagram"), ctx = c.getContext("2d");
+  ctx.clearRect(0,0,c.width,c.height);
+  ctx.fillStyle = "#06111f";
+  ctx.fillRect(0,0,c.width,c.height);
+  if(!r || !isFinite(r.roW)) return;
+
+  const pad = 48;
+  const W = c.width - pad*2;
+  const H = c.height - pad*2;
+  ctx.strokeStyle = "#7dd3fc";
+  ctx.lineWidth = 4;
+  roundRect(ctx,pad,pad,W,H,10);
+  ctx.stroke();
+
+  const config = r.config;
+  const transom = hasTransom(config);
+  const sc = sideCount(config);
+  const double = isDouble(config);
+
+  const transomHpx = transom ? Math.max(54, Math.min(110, H * 0.22)) : 0;
+  const mainY = pad + transomHpx;
+  const mainH = H - transomHpx;
+
+  if(transom){
+    ctx.strokeStyle = "#bae6fd";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(pad, pad, W, transomHpx);
+    centerText(ctx, "TRANSOM " + (r.transomW != null ? `${fmt(r.transomW)} x ${fmt(r.transomH)}` : ""), pad + W/2, pad + transomHpx/2);
+  }
+
+  let parts = [];
+  if(config.includes("SDS")) parts = ["SL", "D", "SL"];
+  else if(config.includes("SD") && !config.includes("SDS")) parts = ["SL", "D"];
+  else if(config.includes("DS")) parts = ["D", "SL"];
+  else if(double) parts = ["D", "D"];
+  else parts = ["D"];
+
+  const totalDoorW = double ? (r.slab.w*2) : r.slab.w;
+  const slW = r.sidelightW || Math.max(10,(r.roW-r.slab.w)/2);
+  const weights = parts.map(p => p === "SL" ? slW : r.slab.w);
+  const sum = weights.reduce((a,b)=>a+b,0);
+  let x = pad;
+  parts.forEach((p,i)=>{
+    const pw = W * (weights[i]/sum);
+    ctx.strokeStyle = p === "SL" ? "#86efac" : "#fbbf24";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x, mainY, pw, mainH);
+    const label = p === "SL" ? "SIDELIGHT" : (double ? `DOOR ${i+1}` : "DOOR");
+    const dims = p === "SL" && r.sidelightW != null ? `${fmt(r.sidelightW)} x ${fmt(r.sidelightH)}` : `${fmt(r.slab.w)} x ${fmt(r.finalDoorH)}`;
+    centerText(ctx, label, x + pw/2, mainY + mainH/2 - 12);
+    centerText(ctx, dims, x + pw/2, mainY + mainH/2 + 14, 18);
+    x += pw;
+  });
+
+  ctx.fillStyle = "#aab7cf";
+  ctx.font = "18px system-ui";
+  ctx.textAlign = "center";
+  ctx.fillText(`RO ${fmt(r.roW)} x ${fmt(r.roH)} • ${r.config} • ${r.swing}`, c.width/2, c.height-16);
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+}
+function centerText(ctx,text,x,y,size=20){
+  ctx.fillStyle = "#e5f6ff";
+  ctx.font = `700 ${size}px system-ui`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text,x,y);
+}
+
+function loadTest(){
+  $("entryName").value = "Confirmed T/SDS test";
+  $("roW").value = "69";
+  $("roH").value = "95";
+  $("config").value = "T/SDS";
+  $("swing").value = "inswing";
+  $("material").value = "fiberglass";
+  $("nominal").value = "30x68";
+  $("tbarMode").value = "auto";
+  toggleCustom();
+  calculate();
+}
+
+function reset(){
+  $("entryName").value = "";
+  $("roW").value = "69";
+  $("roH").value = "95";
+  $("config").value = "SDS";
+  $("swing").value = "inswing";
+  $("material").value = "fiberglass";
+  $("nominal").value = "30x68";
+  $("customW").value = "36";
+  $("customH").value = "80";
+  $("tbarMode").value = "auto";
+  $("tbarCustom").value = "2 1/4";
+  toggleCustom();
+  calculate();
+}
+
+function toggleCustom(){
+  $("customBox").classList.toggle("hidden", $("material").value !== "custom");
+  $("tbarCustomBox").classList.toggle("hidden", $("tbarMode").value !== "custom");
+}
+
+async function copyCutList(){
+  const text = $("cutList").textContent || "";
+  try{
+    await navigator.clipboard.writeText(text);
+    alert("Cut list copied.");
+  }catch(e){
+    alert("Copy blocked by browser. Select the cut list text and copy manually.");
+  }
+}
+
+document.querySelectorAll(".tab").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll(".tabPane").forEach(p=>p.classList.add("hidden"));
+    btn.classList.add("active");
+    $(btn.dataset.tab).classList.remove("hidden");
+    if(btn.dataset.tab === "visual") setTimeout(()=>draw(window.lastResult),50);
+  });
+});
+
+["entryName","roW","roH","config","swing","material","nominal","customW","customH","tbarMode","tbarCustom"].forEach(id=>{
+  $(id).addEventListener("input",()=>{ toggleCustom(); calculate(); });
+  $(id).addEventListener("change",()=>{ toggleCustom(); calculate(); });
+});
+$("calcBtn").addEventListener("click", calculate);
+$("testBtn").addEventListener("click", loadTest);
+$("resetBtn").addEventListener("click", reset);
+$("copyBtn").addEventListener("click", copyCutList);
+$("saveBtn").addEventListener("click", saveCurrentEntry);
+$("clearNameBtn").addEventListener("click", () => { $("entryName").value = ""; calculate(); });
+if ($("saveFromTabBtn")) $("saveFromTabBtn").addEventListener("click", saveCurrentEntry);
+if ($("refreshSavedBtn")) $("refreshSavedBtn").addEventListener("click", renderSavedList);
+if ($("phoneCopyBtn")) $("phoneCopyBtn").addEventListener("click", copyCutList);
+if ($("phoneCalcBtn")) $("phoneCalcBtn").addEventListener("click", calculate);
+
+toggleCustom();
+loadTest();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
