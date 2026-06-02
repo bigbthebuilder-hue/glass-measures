@@ -26,3 +26,6 @@ Directly double-clicking index.html will open the app, but desktop install usual
 
 ## Saved entries
 Saved entries use browser localStorage only. They stay on the device/browser and are not shared.
+
+## V1.5 height logic update
+For non-transom units, final door height is capped at the actual selected slab height. If the rough opening is taller than the selected slab/unit, jamb legs are calculated from the final door height and sidelights remain final door height + 1/8 inch.
