@@ -29,3 +29,12 @@ Saved entries use browser localStorage only. They stay on the device/browser and
 
 ## V1.5 height logic update
 For non-transom units, final door height is capped at the actual selected slab height. If the rough opening is taller than the selected slab/unit, jamb legs are calculated from the final door height and sidelights remain final door height + 1/8 inch.
+
+## V1.6 save/load cleanup
+Saved entries are snapshots. Save as new creates another saved entry. Load brings a saved entry back into the form. New blank clears the form for a new calculation. Saved data stays on-device in localStorage.
+
+## V1.7 auto-save
+Current working door/unit auto-saves to localStorage about 2 seconds after the last change. Saved entries remain separate named snapshots. All data stays on-device.
+
+## V1.8 named saved options
+Saved entries are stored by Entry name / job label. Saving a new name creates a new option. Saving a name that already exists updates the existing option instead of creating duplicate versions. Current work still auto-saves separately.

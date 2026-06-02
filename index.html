@@ -249,6 +249,26 @@
       border-radius:12px;
       font-size:.86rem;
     }
+    .loadedNote{
+      background:rgba(134,239,172,.09);
+      border:1px solid rgba(134,239,172,.35);
+      color:#bbf7d0;
+      border-radius:14px;
+      padding:9px 10px;
+      margin:10px 0 0;
+      font-size:.82rem;
+      line-height:1.35;
+    }
+    .autosaveStatus{
+      color:#bbf7d0;
+      background:rgba(134,239,172,.08);
+      border:1px solid rgba(134,239,172,.25);
+      border-radius:14px;
+      padding:9px 10px;
+      margin-top:10px;
+      font-size:.82rem;
+      line-height:1.35;
+    }
 
     .phoneShell{
       max-width:390px;
@@ -416,12 +436,14 @@
           </div>
           <div class="btnrow">
             <button class="ghost" id="copyBtn">Copy cut list</button>
-            <button class="ghost" id="saveBtn">Save entry</button>
+            <button class="ghost" id="saveBtn">Save / update</button>
           </div>
           <div class="btnrow">
             <button class="ghost" id="resetBtn">Reset</button>
-            <button class="ghost" id="clearNameBtn">Clear name</button>
+            <button class="ghost" id="clearNameBtn">New blank</button>
           </div>
+
+          <div id="autosaveStatus" class="autosaveStatus">Auto-save is on for current work. Use Save / update to keep a named option.</div>
 
           <div class="note">
             Locked rules are used directly. Single-door-with-transom width/height is flagged as estimated until confirmed.
@@ -476,12 +498,12 @@
 
         <section id="saved" class="body tabPane hidden">
           <div class="btnrow" style="margin-top:0;margin-bottom:12px;">
-            <button id="saveFromTabBtn" type="button">Save current</button>
+            <button id="saveFromTabBtn" type="button">Save / update current</button>
             <button class="ghost" id="refreshSavedBtn" type="button">Refresh list</button>
           </div>
           <div id="savedList" class="savedList"></div>
           <div class="note">
-            Saved entries stay on this device/browser only. They are not shared or uploaded.
+            Current work auto-saves on this device. Saved entries are stored by Entry name / job label. Saving the same name updates the existing saved option.
           </div>
         </section>
 
@@ -765,6 +787,10 @@ function render(r){
 
 
 const SAVE_KEY = "glassMeasuresSavedEntriesV1";
+const AUTO_SAVE_KEY = "glassMeasuresCurrentWorkV1";
+let loadedSavedEntryId = null;
+let autoSaveTimer = null;
+let isRestoringAutoSave = false;
 
 function currentFormState(){
   return {
@@ -782,6 +808,61 @@ function currentFormState(){
   };
 }
 
+
+function setAutoSaveStatus(text){
+  const el = $("autosaveStatus");
+  if(el) el.textContent = text;
+}
+
+function autoSaveCurrentWork(){
+  try{
+    const state = currentFormState();
+    const payload = {
+      savedAt: new Date().toISOString(),
+      state
+    };
+    localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(payload));
+    const time = new Date(payload.savedAt).toLocaleTimeString([], {hour: "numeric", minute: "2-digit", second: "2-digit"});
+    setAutoSaveStatus(`Auto-saved current work on this device at ${time}.`);
+  }catch(e){
+    setAutoSaveStatus("Auto-save could not write to this browser.");
+  }
+}
+
+function scheduleAutoSave(){
+  if(isRestoringAutoSave) return;
+  setAutoSaveStatus("Auto-save pending...");
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(autoSaveCurrentWork, 1800);
+}
+
+function restoreAutoSavedWork(){
+  try{
+    const raw = localStorage.getItem(AUTO_SAVE_KEY);
+    if(!raw) return false;
+    const payload = JSON.parse(raw);
+    if(!payload || !payload.state) return false;
+    isRestoringAutoSave = true;
+    applyFormState(payload.state);
+    isRestoringAutoSave = false;
+    const time = payload.savedAt ? new Date(payload.savedAt).toLocaleString() : "";
+    setAutoSaveStatus(time ? `Restored current work saved on this device: ${time}.` : "Restored current work saved on this device.");
+    return true;
+  }catch(e){
+    isRestoringAutoSave = false;
+    return false;
+  }
+}
+
+function clearAutoSavedWork(){
+  try{
+    localStorage.removeItem(AUTO_SAVE_KEY);
+  }catch(e){}
+  setAutoSaveStatus("Current work cleared. New changes will auto-save.");
+}
+
+
+
 function applyFormState(s){
   if(!s) return;
   $("entryName").value = s.entryName || "";
@@ -797,6 +878,7 @@ function applyFormState(s){
   $("tbarCustom").value = s.tbarCustom || "2 1/4";
   toggleCustom();
   calculate();
+  if(!isRestoringAutoSave) scheduleAutoSave();
 }
 
 function getSavedEntries(){
@@ -813,12 +895,28 @@ function setSavedEntries(list){
   localStorage.setItem(SAVE_KEY, JSON.stringify(list));
 }
 
+function normalizeEntryName(name){
+  return String(name || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 function saveCurrentEntry(){
   const calc = calculate();
   const state = currentFormState();
-  const name = state.entryName.trim() || `${state.config} ${state.roW}" x ${state.roH}"`;
+  const name = state.entryName.trim();
+
+  if(!name){
+    alert("Add an Entry name / job label before saving.");
+    $("entryName").focus();
+    return;
+  }
+
+  const key = normalizeEntryName(name);
+  const list = getSavedEntries();
+  const existingIndex = list.findIndex(x => normalizeEntryName(x.name) === key);
+  const existing = existingIndex >= 0 ? list[existingIndex] : null;
+
   const entry = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    id: existing ? existing.id : (Date.now().toString(36) + Math.random().toString(36).slice(2,7)),
     name,
     savedAt: new Date().toISOString(),
     state,
@@ -831,21 +929,32 @@ function saveCurrentEntry(){
       transom: calc.transomW != null ? `${fmt(calc.transomW)} x ${fmt(calc.transomH)}` : ""
     }
   };
-  const list = getSavedEntries();
+
+  if(existingIndex >= 0){
+    list.splice(existingIndex, 1);
+  }
   list.unshift(entry);
-  setSavedEntries(list.slice(0, 25));
+
+  setSavedEntries(list.slice(0, 100));
+  loadedSavedEntryId = entry.id;
+  autoSaveCurrentWork();
   renderSavedList();
-  alert("Entry saved on this device.");
+  alert(existing ? "Saved option updated on this device." : "Saved as a new option on this device.");
 }
 
 function loadSavedEntry(id){
   const entry = getSavedEntries().find(x => x.id === id);
-  if(entry) applyFormState(entry.state);
+  if(entry){
+    loadedSavedEntryId = id;
+    applyFormState(entry.state);
+    renderSavedList();
+  }
 }
 
 function deleteSavedEntry(id){
   const list = getSavedEntries().filter(x => x.id !== id);
   setSavedEntries(list);
+  if(loadedSavedEntryId === id) loadedSavedEntryId = null;
   renderSavedList();
 }
 
@@ -854,7 +963,7 @@ function renderSavedList(){
   if(!box) return;
   const list = getSavedEntries();
   if(!list.length){
-    box.innerHTML = `<div class="small">No saved entries yet. Use Save entry to keep a few calculations on this device.</div>`;
+    box.innerHTML = `<div class="small">No saved entries yet. Add an Entry name / job label, then press Save / update.</div>`;
     return;
   }
   box.innerHTML = list.map(entry => {
@@ -867,6 +976,7 @@ function renderSavedList(){
       s.sidelight ? `SL ${s.sidelight}` : "",
       s.transom ? `T ${s.transom}` : ""
     ].filter(Boolean).join(" • ");
+    const loaded = loadedSavedEntryId === entry.id;
     return `
       <div class="savedItem">
         <div class="savedHead">
@@ -876,8 +986,9 @@ function renderSavedList(){
           </div>
         </div>
         <div class="small">${escapeHtml(details)}</div>
+        ${loaded ? `<div class="loadedNote">Loaded now. Changes are not saved until you press Save / update.</div>` : ""}
         <div class="savedBtns">
-          <button type="button" onclick="loadSavedEntry('${entry.id}')">Load</button>
+          <button type="button" onclick="loadSavedEntry('${entry.id}')">${loaded ? "Loaded" : "Load"}</button>
           <button type="button" class="ghost" onclick="deleteSavedEntry('${entry.id}')">Delete</button>
         </div>
       </div>
@@ -986,6 +1097,7 @@ function centerText(ctx,text,x,y,size=20){
 }
 
 function loadTest(){
+  loadedSavedEntryId = null;
   $("entryName").value = "Confirmed T/SDS test";
   $("roW").value = "69";
   $("roH").value = "95";
@@ -996,9 +1108,11 @@ function loadTest(){
   $("tbarMode").value = "auto";
   toggleCustom();
   calculate();
+  scheduleAutoSave();
 }
 
 function reset(){
+  loadedSavedEntryId = null;
   $("entryName").value = "";
   $("roW").value = "69";
   $("roH").value = "95";
@@ -1012,6 +1126,7 @@ function reset(){
   $("tbarCustom").value = "2 1/4";
   toggleCustom();
   calculate();
+  scheduleAutoSave();
 }
 
 function toggleCustom(){
@@ -1040,22 +1155,38 @@ document.querySelectorAll(".tab").forEach(btn=>{
 });
 
 ["entryName","roW","roH","config","swing","material","nominal","customW","customH","tbarMode","tbarCustom"].forEach(id=>{
-  $(id).addEventListener("input",()=>{ toggleCustom(); calculate(); });
-  $(id).addEventListener("change",()=>{ toggleCustom(); calculate(); });
+  $(id).addEventListener("input",()=>{ toggleCustom(); calculate(); scheduleAutoSave(); });
+  $(id).addEventListener("change",()=>{ toggleCustom(); calculate(); scheduleAutoSave(); });
 });
 $("calcBtn").addEventListener("click", calculate);
 $("testBtn").addEventListener("click", loadTest);
 $("resetBtn").addEventListener("click", reset);
 $("copyBtn").addEventListener("click", copyCutList);
 $("saveBtn").addEventListener("click", saveCurrentEntry);
-$("clearNameBtn").addEventListener("click", () => { $("entryName").value = ""; calculate(); });
+$("clearNameBtn").addEventListener("click", () => {
+  loadedSavedEntryId = null;
+  clearAutoSavedWork();
+  $("entryName").value = "";
+  $("roW").value = "";
+  $("roH").value = "";
+  $("config").value = "SDS";
+  $("swing").value = "inswing";
+  $("material").value = "fiberglass";
+  $("nominal").value = "30x68";
+  $("tbarMode").value = "auto";
+  toggleCustom();
+  calculate();
+  renderSavedList();
+});
 if ($("saveFromTabBtn")) $("saveFromTabBtn").addEventListener("click", saveCurrentEntry);
 if ($("refreshSavedBtn")) $("refreshSavedBtn").addEventListener("click", renderSavedList);
 if ($("phoneCopyBtn")) $("phoneCopyBtn").addEventListener("click", copyCutList);
 if ($("phoneCalcBtn")) $("phoneCalcBtn").addEventListener("click", calculate);
 
 toggleCustom();
-loadTest();
+if(!restoreAutoSavedWork()){
+  loadTest();
+}
 </script>
 
 <script>
