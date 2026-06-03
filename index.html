@@ -270,57 +270,6 @@
       line-height:1.35;
     }
 
-    .phoneShell{
-      max-width:390px;
-      margin:0 auto;
-      border:1px solid var(--line);
-      border-radius:30px;
-      background:#030712;
-      padding:12px;
-      box-shadow:var(--shadow);
-    }
-    .phoneScreen{
-      border-radius:22px;
-      overflow:hidden;
-      background:linear-gradient(180deg,#0f172a,#071122);
-      border:1px solid #1f2a44;
-    }
-    .phoneTop{
-      padding:12px 14px;
-      border-bottom:1px solid var(--line);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .phoneTitle{font-weight:900;font-size:.98rem}
-    .phonePill{
-      color:#06111f;
-      background:var(--accent);
-      border-radius:999px;
-      padding:5px 8px;
-      font-size:.7rem;
-      font-weight:900;
-    }
-    .phoneContent{padding:12px}
-    .phoneMetric{
-      background:rgba(17,28,51,.95);
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:12px;
-      margin-bottom:10px;
-    }
-    .phoneMetric .k{font-size:.74rem;color:var(--muted);margin-bottom:4px}
-    .phoneMetric .v{font-size:1.08rem;font-weight:900}
-    .phoneActions{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:8px;
-      padding:12px;
-      border-top:1px solid var(--line);
-      background:rgba(255,255,255,.025);
-    }
-
     @media (max-width:900px){
       .grid{grid-template-columns:1fr}
       .results{grid-template-columns:1fr}
@@ -459,7 +408,6 @@
         <div class="tabs">
           <button class="tab active" data-tab="summary">Summary</button>
           <button class="tab" data-tab="visual">Canvas</button>
-          <button class="tab" data-tab="phone">Phone scale</button>
           <button class="tab" data-tab="saved">Saved</button>
           <button class="tab" data-tab="rules">Rules</button>
           <button class="tab" data-tab="copy">Cut list</button>
@@ -472,27 +420,6 @@
         <section id="visual" class="body tabPane hidden">
           <canvas id="diagram" width="900" height="460"></canvas>
           <div class="small" style="margin-top:10px">Simple visual only. Use the calculated measurements for shop work.</div>
-        </section>
-
-
-        <section id="phone" class="body tabPane hidden">
-          <div class="phoneShell">
-            <div class="phoneScreen">
-              <div class="phoneTop">
-                <div>
-                  <div class="phoneTitle">Glass Measures</div>
-                  <div class="small" id="phoneSubtitle">Current unit</div>
-                </div>
-                <div class="phonePill">PHONE</div>
-              </div>
-              <div class="phoneContent" id="phoneContent"></div>
-              <div class="phoneActions">
-                <button class="ghost" id="phoneCopyBtn" type="button">Copy</button>
-                <button class="ghost" id="phoneCalcBtn" type="button">Refresh</button>
-              </div>
-            </div>
-          </div>
-          <div class="small" style="margin-top:10px;text-align:center;">Phone-scale view mirrors the main result in a narrow install-style layout.</div>
         </section>
 
 
@@ -721,7 +648,7 @@ function calculate(){
 
   result.metrics.push(["Rough opening", `${fmt(roW)} x ${fmt(roH)}`, "Entered rough opening."]);
   result.metrics.push(["Configuration", config, `Swing: ${swing}.`]);
-  result.metrics.push(["Actual slab", `${fmt(slab.w)} x ${fmt(slab.h)}`, slab.label]);
+  result.metrics.push(["Selected slab size", `${fmt(slab.w)} x ${fmt(slab.h)}`, `${slab.label} before any cut-down.`]);
   result.metrics.push(["T-bar", tbar.size ? fmt(tbar.size) : "None", tbar.reason]);
   result.metrics.push(["Jamb legs", fmt(jambLeg), result.heightCappedBySlab ? "Based on final door height because RO is taller than selected slab/unit." : "RO height - 1/2 inch."]);
   result.metrics.push(["Final door size", `${fmt(finalDoorW)} x ${fmt(finalDoorH)}`, hasTransom(config) ? "Transom unit keeps selected slab height." : (result.heightCappedBySlab ? "Held at actual slab height. Door cannot grow taller than the slab." : "Calculated from jamb leg and swing.")]);
@@ -745,13 +672,13 @@ function buildCutList(r){
   lines.push(`Config: ${r.config}`);
   lines.push(`Swing: ${r.swing}`);
   lines.push(`Door: ${r.slab.label}`);
-  lines.push(`Actual slab: ${fmt(r.slab.w)} x ${fmt(r.slab.h)}`);
+  lines.push(`Selected slab before cut: ${fmt(r.slab.w)} x ${fmt(r.slab.h)}`);
   lines.push("");
   lines.push("CUTS / SIZES");
   lines.push(`Jamb legs: ${fmt(r.jambLeg)}`);
   lines.push(`Actual cut header: ${fmt(r.headerW)}`);
-  lines.push(`Final door: ${fmt(r.slab.w)} x ${fmt(r.finalDoorH)}`);
-  if(!hasTransom(r.config)) lines.push(`Door cut-down: ${r.cutDown > 0 ? fmt(r.cutDown) : "None"}`);
+  lines.push(`Finished door size: ${fmt(r.slab.w)} x ${fmt(r.finalDoorH)}`);
+  if(!hasTransom(r.config)) lines.push(`Height cut-down from selected slab: ${r.cutDown > 0 ? fmt(r.cutDown) : "None"}`);
   if(r.heightCappedBySlab) lines.push("Height note: RO is taller than selected slab/unit, so final door and sidelights are held to slab-based height.");
   if(r.sidelightW != null) lines.push(`${sideCount(r.config) === 2 ? "Each sidelight" : "Sidelight"} glass: ${fmt(r.sidelightW)} x ${fmt(r.sidelightH)}`);
   if(r.transomW != null) lines.push(`Transom glass: ${fmt(r.transomW)} x ${fmt(r.transomH)}`);
@@ -778,7 +705,6 @@ function render(r){
   }
   $("ruleText").textContent = (r.rules || []).map(x => "• " + x).join("\n") || "No rules yet.";
   $("cutList").textContent = (r.cutLines || []).join("\n");
-  renderPhone(r);
   renderSavedList();
   draw(r);
   window.lastResult = r;
@@ -997,22 +923,6 @@ function renderSavedList(){
 }
 
 
-function renderPhone(r){
-  const box = $("phoneContent");
-  if(!box) return;
-  $("phoneSubtitle").textContent = `${r.config || ""} • ${r.swing || ""}`;
-  const items = [];
-  items.push(["RO", `${fmt(r.roW)} x ${fmt(r.roH)}`]);
-  items.push(["Door", `${fmt(r.slab?.w)} x ${fmt(r.finalDoorH)}`]);
-  items.push(["Jamb legs", fmt(r.jambLeg)]);
-  items.push(["Cut header", fmt(r.headerW)]);
-  if(r.sidelightW != null) items.push([sideCount(r.config) === 2 ? "Each sidelight" : "Sidelight", `${fmt(r.sidelightW)} x ${fmt(r.sidelightH)}`]);
-  if(r.transomW != null) items.push(["Transom", `${fmt(r.transomW)} x ${fmt(r.transomH)}`]);
-  if(r.warnings && r.warnings.length) items.push(["Warnings", r.warnings.join(" ")]);
-  box.innerHTML = items.map(([k,v]) => `<div class="phoneMetric"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v)}</div></div>`).join("");
-}
-
-
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
 
 function draw(r){
@@ -1180,8 +1090,6 @@ $("clearNameBtn").addEventListener("click", () => {
 });
 if ($("saveFromTabBtn")) $("saveFromTabBtn").addEventListener("click", saveCurrentEntry);
 if ($("refreshSavedBtn")) $("refreshSavedBtn").addEventListener("click", renderSavedList);
-if ($("phoneCopyBtn")) $("phoneCopyBtn").addEventListener("click", copyCutList);
-if ($("phoneCalcBtn")) $("phoneCalcBtn").addEventListener("click", calculate);
 
 toggleCustom();
 if(!restoreAutoSavedWork()){

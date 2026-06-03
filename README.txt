@@ -38,3 +38,6 @@ Current working door/unit auto-saves to localStorage about 2 seconds after the l
 
 ## V1.8 named saved options
 Saved entries are stored by Entry name / job label. Saving a new name creates a new option. Saving a name that already exists updates the existing option instead of creating duplicate versions. Current work still auto-saves separately.
+
+## V1.9 cleanup
+Removed the Phone scale tab because the app layout already scales responsively. Cut list wording now says selected slab before cut and finished door size to avoid confusing the original slab size with the final cut door size.
