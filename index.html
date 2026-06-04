@@ -430,7 +430,7 @@
           <div id="autosaveStatus" class="autosaveStatus">Auto-save is on for current work. Results update automatically as you type.</div>
 
           <div class="note">
-            Locked rules are used directly. Single-door-with-transom width/height is flagged as estimated until confirmed.
+            Locked rules are used directly. Single-door-with-transom height is flagged as estimated until confirmed.
           </div>
           <div class="note" style="background:rgba(125,211,252,.08);border-color:rgba(125,211,252,.35);color:#dff7ff;">
             Desktop install: deploy this folder to Vercel or open through a local web server, then use the browser install icon. Direct file-open mode may not show install.
@@ -548,6 +548,11 @@ function isFixedWidthDoorOnly(config){
 }
 
 function getRecommendedROWidth(config, slab, headerW){
+  if(config === "D" || config === "T/D"){
+    const material = getMaterial();
+    const standard = getStandardSingleDoorROWidth(material, slab);
+    if(standard != null) return standard;
+  }
   if(!isFinite(headerW)) return null;
   if(isFixedWidthDoorOnly(config)) return headerW + 2;
   return null;
@@ -614,6 +619,23 @@ function getSlab(){
 
 function getMaterial(){
   return $("material").value;
+}
+
+function getNominalWidthFromSelection(){
+  const nominal = $("nominal") ? $("nominal").value : "";
+  if(nominal.startsWith("30")) return 36;
+  if(nominal.startsWith("36")) return 42;
+  return null;
+}
+
+function getStandardSingleDoorHeader(material, slab){
+  if(!isFinite(slab?.w)) return null;
+  return slab.w + 0.25;
+}
+
+function getStandardSingleDoorROWidth(material, slab){
+  const header = getStandardSingleDoorHeader(material, slab);
+  return header != null ? header + 2 : null;
 }
 
 function autoTbar(config){
@@ -690,9 +712,9 @@ function calculate(){
     headerW = ddHeader;
     result.rules.push("Double door header = left slab + right slab + 13/16 inch astragal + 1/4 inch total gaps.");
   } else if(config === "D" || config === "T/D") {
-    headerW = slab.w + 0.25;
-    result.rules.push("Single door header width is estimated as slab width + 1/4 inch gap. Confirm this rule.");
-    result.warnings.push("Single door header/transom width rule still needs confirmation.");
+    headerW = getStandardSingleDoorHeader(material, slab);
+    if(headerW == null) headerW = slab.w + 0.25;
+    result.rules.push("Single door actual cut header = actual slab width + 1/4 inch. Recommended RO width = actual cut header + 2 inches.");
   } else {
     headerW = roW - 2;
     result.rules.push("Sidelight unit actual cut header = RO width - 2 inches, allowing 1 inch for each outside jamb side.");
@@ -727,7 +749,7 @@ function calculate(){
       result.rules.push("T/DD transom width = double door header/T-bar above door - 1/8 inch.");
     } else if(config === "T/D"){
       transomW = headerW - 0.125;
-      result.rules.push("T/D transom width currently estimated as single door header - 1/8 inch. Confirm exact rule.");
+      result.rules.push("T/D transom width = single door actual cut header - 1/8 inch.");
     } else {
       transomW = roW - 2.125;
       result.rules.push("T/SD, T/DS, and T/SDS transom width = RO width - 2-1/8 inches.");
@@ -799,7 +821,7 @@ function calculate(){
   result.metrics.push(["Jamb legs", fmt(jambLeg), result.heightCappedBySlab ? "Based on final door height because RO is taller than selected slab/unit." : "RO height - 1/2 inch."]);
   result.metrics.push(["Final door size", `${fmt(finalDoorW)} x ${fmt(finalDoorH)}`, hasTransom(config) ? "Transom unit keeps selected slab height." : (result.heightCappedBySlab ? "Held at actual slab height. Door cannot grow taller than the slab." : "Calculated from jamb leg and swing.")]);
   if(!hasTransom(config)) result.metrics.push(["Door cut-down", cutDown > 0 ? fmt(cutDown) : "None", cutDown > 0 ? `Amount removed from slab height. No-cut RO height would be about ${fmt(noCutROHeight)}.` : "No height cut-down shown."]);
-  result.metrics.push(["Actual cut header", fmt(headerW), isDouble(config) ? "Confirmed double door header rule." : (hasSidelight(config) ? "RO width - 2 inches; actual header cut between jamb legs." : "Single-door header rule needs confirmation.")]);
+  result.metrics.push(["Actual cut header", fmt(headerW), isDouble(config) ? "Confirmed double door header rule." : (hasSidelight(config) ? "RO width - 2 inches; actual header cut between jamb legs." : "Confirmed single-door rule: recommended RO, actual header, and transom width use actual slab width.")]);
   if(sc > 0) result.metrics.push([sc === 2 ? "Each sidelight glass" : "Sidelight glass", `${fmt(sidelightW)} x ${fmt(sidelightH)}`, `${sc} sidelight glass unit${sc>1?"s":""}.`]);
   if(hasTransom(config)) result.metrics.push(["Transom glass", `${fmt(transomW)} x ${fmt(transomH)}`, config === "T/D" ? "Estimated T/D rule." : "Calculated from locked transom rules."]);
   if(result.warnings.length) result.metrics.push(["Warnings", result.warnings.join(" "), "Review before cutting or ordering glass."]);

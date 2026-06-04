@@ -53,3 +53,12 @@ When a non-transom door needs to be cut down, the warning, popup, and cut list n
 
 ## V1.13 blocking width validation
 Added blocking validation for door-only widths where the selected slab cannot fit the entered rough opening. Fiberglass doors cannot be cut narrower. Wood doors require custom width/selecting a smaller slab when the RO is too narrow. Blocking errors are shown before normal outputs and included in the cut list as DO NOT USE.
+
+## V1.14 single door width rule
+Confirmed single-door header/rough-opening width logic. Stock single doors use industry-standard RO width based on nominal door width + 2 inches, so a 3'0" fiberglass or wood door both show 38" RO width. Single door actual cut header is the recommended RO width minus 2 inches. Removed the single-door header/transom width confirmation warning.
+
+## V1.15 actual slab transom width
+Separated recommended rough opening width from actual header/transom width. Stock single-door recommended RO still uses nominal width + 2 inches, but actual cut header and T/D transom width are based on actual slab width. Double-door transom sizing continues to use actual slab widths, astragal, and gaps, so fiberglass and wood door pairs produce different header/transom widths and transom heights.
+
+## V1.16 shop-accurate RO correction
+Removed the nominal-width same-RO shortcut. Single-door recommended rough opening width now uses actual slab size consistently: actual cut header = actual slab width + 1/4 inch, recommended RO width = actual cut header + 2 inches, and T/D transom glass width = actual cut header - 1/8 inch. This prevents conflicts between fiberglass and wood slab sizing.
