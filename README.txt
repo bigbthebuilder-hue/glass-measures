@@ -41,3 +41,12 @@ Saved entries are stored by Entry name / job label. Saving a new name creates a 
 
 ## V1.9 cleanup
 Removed the Phone scale tab because the app layout already scales responsively. Cut list wording now says selected slab before cut and finished door size to avoid confusing the original slab size with the final cut door size.
+
+## V1.10 button cleanup
+Removed the development test button and manual Calculate button. Results update automatically as fields change. Main actions are Copy cut list, Save/update, and New blank.
+
+## V1.11 recommended RO
+Added recommended rough opening display for fixed-width door setups and non-transom height cases. Warnings now use tolerances so small acceptable differences do not over-alert. Added a temporary cut-down notice when the selected slab must be cut shorter.
+
+## V1.12 no-cut RO suggestion
+When a non-transom door needs to be cut down, the warning, popup, and cut list now show the rough opening height that would be needed to avoid cutting the selected slab.

@@ -207,6 +207,28 @@
       font-size:.9rem;
       margin-top:12px;
     }
+    .cutNotice{
+      position:fixed;
+      left:50%;
+      bottom:22px;
+      transform:translateX(-50%);
+      width:min(520px,calc(100% - 28px));
+      background:rgba(15,23,42,.96);
+      border:1px solid rgba(251,191,36,.65);
+      color:#fff7cc;
+      border-radius:18px;
+      padding:13px 14px;
+      box-shadow:var(--shadow);
+      z-index:20;
+      display:none;
+      line-height:1.35;
+      font-size:.92rem;
+    }
+    .cutNotice strong{color:#fef3c7}
+    .metric.highlight{
+      border-color:rgba(251,191,36,.75);
+      background:rgba(251,191,36,.09);
+    }
     .hidden{display:none}
     .small{font-size:.82rem;color:var(--muted);line-height:1.35}
 
@@ -380,19 +402,14 @@
           </div>
 
           <div class="btnrow">
-            <button id="calcBtn">Calculate</button>
-            <button class="secondary" id="testBtn">Load T/SDS test</button>
-          </div>
-          <div class="btnrow">
             <button class="ghost" id="copyBtn">Copy cut list</button>
             <button class="ghost" id="saveBtn">Save / update</button>
           </div>
           <div class="btnrow">
-            <button class="ghost" id="resetBtn">Reset</button>
             <button class="ghost" id="clearNameBtn">New blank</button>
           </div>
 
-          <div id="autosaveStatus" class="autosaveStatus">Auto-save is on for current work. Use Save / update to keep a named option.</div>
+          <div id="autosaveStatus" class="autosaveStatus">Auto-save is on for current work. Results update automatically as you type.</div>
 
           <div class="note">
             Locked rules are used directly. Single-door-with-transom width/height is flagged as estimated until confirmed.
@@ -444,6 +461,7 @@
       </main>
     </div>
   </div>
+  <div id="cutNotice" class="cutNotice"></div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -506,6 +524,43 @@ function hasSidelight(config){ return ["SD","DS","SDS","T/SD","T/DS","T/SDS"].in
 function sideCount(config){ return config.includes("SDS") ? 2 : (config.includes("SD") || config.includes("DS") ? 1 : 0); }
 function isDouble(config){ return config.includes("DD"); }
 function isSingleDoorTransom(config){ return config === "T/D"; }
+
+function isFixedWidthDoorOnly(config){
+  return ["D","T/D","DD","T/DD"].includes(config);
+}
+
+function getRecommendedROWidth(config, slab, headerW){
+  if(!isFinite(headerW)) return null;
+  if(isFixedWidthDoorOnly(config)) return headerW + 2;
+  return null;
+}
+
+function getRecommendedROHeight(config, finalDoorH, jambLeg, slab, swing){
+  if(!isFinite(finalDoorH) || !isFinite(jambLeg)) return null;
+  if(hasTransom(config)) return null;
+  return jambLeg + 0.5;
+}
+
+function getNoCutROHeight(config, slab, swing){
+  if(hasTransom(config) || !isFinite(slab?.h)) return null;
+  const jambAdd = swing === "inswing" ? 2.25 : 2.0;
+  return slab.h + jambAdd + 0.5;
+}
+
+function withinTolerance(actual, recommended, tolerance){
+  if(!isFinite(actual) || !isFinite(recommended)) return true;
+  return Math.abs(actual - recommended) <= tolerance;
+}
+
+function isTooSmall(actual, recommended, tolerance){
+  if(!isFinite(actual) || !isFinite(recommended)) return false;
+  return actual < recommended - tolerance;
+}
+
+function isTooLarge(actual, recommended, tolerance){
+  if(!isFinite(actual) || !isFinite(recommended)) return false;
+  return actual > recommended + tolerance;
+}
 
 function getSlab(){
   const material = $("material").value;
@@ -600,6 +655,9 @@ function calculate(){
   }
   result.headerW = headerW;
 
+  const recommendedROWidth = getRecommendedROWidth(config, slab, headerW);
+  result.recommendedROWidth = recommendedROWidth;
+
   let sidelightW = null, sidelightH = null;
   const sc = sideCount(config);
   if(sc > 0){
@@ -641,18 +699,54 @@ function calculate(){
     result.transomH = transomH;
   }
 
+  const recommendedROHeight = getRecommendedROHeight(config, finalDoorH, jambLeg, slab, swing);
+  const noCutROHeight = getNoCutROHeight(config, slab, swing);
+  result.recommendedROHeight = recommendedROHeight;
+  result.noCutROHeight = noCutROHeight;
+
+  const recommendedParts = [];
+  if(recommendedROWidth != null) recommendedParts.push(`${fmt(recommendedROWidth)} W`);
+  if(recommendedROHeight != null) recommendedParts.push(`${fmt(recommendedROHeight)} H`);
+  result.recommendedROText = recommendedParts.length ? recommendedParts.join(" x ") : "Varies by entered layout/opening";
+
+  const widthTolerance = 0.125;
+  const heightTolerance = 0.25;
+
+  if(recommendedROWidth != null && isTooSmall(roW, recommendedROWidth, widthTolerance)){
+    result.warnings.push(`RO width is too small for this door setup. Recommended RO width: ${fmt(recommendedROWidth)}.`);
+  } else if(recommendedROWidth != null && isTooLarge(roW, recommendedROWidth, widthTolerance)){
+    result.warnings.push(`RO width is wider than needed for this door setup. Recommended RO width: ${fmt(recommendedROWidth)}.`);
+  }
+
+  if(recommendedROHeight != null && isTooSmall(roH, recommendedROHeight, heightTolerance)){
+    result.warnings.push(`RO height is too small for this door setup. Recommended RO height: ${fmt(recommendedROHeight)}.`);
+  } else if(recommendedROHeight != null && isTooLarge(roH, recommendedROHeight, heightTolerance)){
+    result.warnings.push(`RO height is taller than needed for this door setup. Recommended RO height: ${fmt(recommendedROHeight)}.`);
+  }
+
   if(hasTransom(config) && transomH <= 0) result.warnings.push("Transom height is zero or negative. Selected slab is likely too tall for this RO.");
   if(sc > 0 && sidelightW <= 0) result.warnings.push("Sidelight width is zero or negative. Check RO width, slab width, and configuration.");
+  if(!hasTransom(config) && cutDown > 0.001 && noCutROHeight != null){
+    result.warnings.push(`Door will be cut down ${fmt(cutDown)}. To avoid cutting this door, RO height would need to be about ${fmt(noCutROHeight)}.`);
+  }
   if(!hasTransom(config) && cutDown > 2.5) result.warnings.push("Door cut-down is large. Confirm before cutting.");
-  if(result.heightCappedBySlab) result.warnings.push("Rough opening is taller than this selected slab/unit. Door and sidelights are held to slab-based height; extra RO height is not absorbed unless this unit has a transom.");
+  if(result.heightCappedBySlab && recommendedROHeight == null) result.warnings.push("Rough opening is taller than this selected slab/unit. Door and sidelights are held to slab-based height; extra RO height is not absorbed unless this unit has a transom.");
 
   result.metrics.push(["Rough opening", `${fmt(roW)} x ${fmt(roH)}`, "Entered rough opening."]);
+  if(recommendedROWidth != null || recommendedROHeight != null){
+    const recW = recommendedROWidth != null ? fmt(recommendedROWidth) : fmt(roW);
+    const recH = recommendedROHeight != null ? fmt(recommendedROHeight) : fmt(roH);
+    const needsNote =
+      (recommendedROWidth != null && !withinTolerance(roW, recommendedROWidth, widthTolerance)) ||
+      (recommendedROHeight != null && !withinTolerance(roH, recommendedROHeight, heightTolerance));
+    result.metrics.push(["Recommended rough opening", `${recW} x ${recH}`, needsNote ? "Current RO should be reviewed against this recommended opening." : "Current RO is within tolerance for this setup."]);
+  }
   result.metrics.push(["Configuration", config, `Swing: ${swing}.`]);
   result.metrics.push(["Selected slab size", `${fmt(slab.w)} x ${fmt(slab.h)}`, `${slab.label} before any cut-down.`]);
   result.metrics.push(["T-bar", tbar.size ? fmt(tbar.size) : "None", tbar.reason]);
   result.metrics.push(["Jamb legs", fmt(jambLeg), result.heightCappedBySlab ? "Based on final door height because RO is taller than selected slab/unit." : "RO height - 1/2 inch."]);
   result.metrics.push(["Final door size", `${fmt(finalDoorW)} x ${fmt(finalDoorH)}`, hasTransom(config) ? "Transom unit keeps selected slab height." : (result.heightCappedBySlab ? "Held at actual slab height. Door cannot grow taller than the slab." : "Calculated from jamb leg and swing.")]);
-  if(!hasTransom(config)) result.metrics.push(["Door cut-down", cutDown > 0 ? fmt(cutDown) : "None", cutDown > 0 ? "Amount removed from slab height." : "No height cut-down shown."]);
+  if(!hasTransom(config)) result.metrics.push(["Door cut-down", cutDown > 0 ? fmt(cutDown) : "None", cutDown > 0 ? `Amount removed from slab height. No-cut RO height would be about ${fmt(noCutROHeight)}.` : "No height cut-down shown."]);
   result.metrics.push(["Actual cut header", fmt(headerW), isDouble(config) ? "Confirmed double door header rule." : (hasSidelight(config) ? "RO width - 2 inches; actual header cut between jamb legs." : "Single-door header rule needs confirmation.")]);
   if(sc > 0) result.metrics.push([sc === 2 ? "Each sidelight glass" : "Sidelight glass", `${fmt(sidelightW)} x ${fmt(sidelightH)}`, `${sc} sidelight glass unit${sc>1?"s":""}.`]);
   if(hasTransom(config)) result.metrics.push(["Transom glass", `${fmt(transomW)} x ${fmt(transomH)}`, config === "T/D" ? "Estimated T/D rule." : "Calculated from locked transom rules."]);
@@ -668,7 +762,12 @@ function buildCutList(r){
   lines.push("GLASS MEASURES CUT LIST");
   if(r.entryName) lines.push(`Entry: ${r.entryName}`);
   lines.push("");
-  lines.push(`RO: ${fmt(r.roW)} W x ${fmt(r.roH)} H`);
+  lines.push(`Entered RO: ${fmt(r.roW)} W x ${fmt(r.roH)} H`);
+  if(r.recommendedROWidth != null || r.recommendedROHeight != null){
+    const recW = r.recommendedROWidth != null ? fmt(r.recommendedROWidth) : fmt(r.roW);
+    const recH = r.recommendedROHeight != null ? fmt(r.recommendedROHeight) : fmt(r.roH);
+    lines.push(`Recommended RO: ${recW} W x ${recH} H`);
+  }
   lines.push(`Config: ${r.config}`);
   lines.push(`Swing: ${r.swing}`);
   lines.push(`Door: ${r.slab.label}`);
@@ -679,6 +778,9 @@ function buildCutList(r){
   lines.push(`Actual cut header: ${fmt(r.headerW)}`);
   lines.push(`Finished door size: ${fmt(r.slab.w)} x ${fmt(r.finalDoorH)}`);
   if(!hasTransom(r.config)) lines.push(`Height cut-down from selected slab: ${r.cutDown > 0 ? fmt(r.cutDown) : "None"}`);
+  if(!hasTransom(r.config) && r.cutDown > 0.001 && r.noCutROHeight != null){
+    lines.push(`RO height to avoid door cut-down: ${fmt(r.noCutROHeight)}`);
+  }
   if(r.heightCappedBySlab) lines.push("Height note: RO is taller than selected slab/unit, so final door and sidelights are held to slab-based height.");
   if(r.sidelightW != null) lines.push(`${sideCount(r.config) === 2 ? "Each sidelight" : "Sidelight"} glass: ${fmt(r.sidelightW)} x ${fmt(r.sidelightH)}`);
   if(r.transomW != null) lines.push(`Transom glass: ${fmt(r.transomW)} x ${fmt(r.transomH)}`);
@@ -698,13 +800,15 @@ function render(r){
   metrics.innerHTML = "";
   for(const [k,v,rule] of r.metrics || []){
     const div = document.createElement("div");
-    div.className = "metric" + (k === "Warnings" ? " full" : "");
+    const shouldHighlight = k === "Recommended rough opening" && r.warnings && r.warnings.some(w => w.includes("Recommended RO"));
+    div.className = "metric" + (k === "Warnings" ? " full" : "") + (shouldHighlight ? " highlight" : "");
     const cls = k === "Warnings" ? "warn" : "";
     div.innerHTML = `<div class="k">${escapeHtml(k)}</div><div class="v ${cls}">${escapeHtml(v)}</div><div class="r">${escapeHtml(rule)}</div>`;
     metrics.appendChild(div);
   }
   $("ruleText").textContent = (r.rules || []).map(x => "• " + x).join("\n") || "No rules yet.";
   $("cutList").textContent = (r.cutLines || []).join("\n");
+  renderCutNotice(r);
   renderSavedList();
   draw(r);
   window.lastResult = r;
@@ -884,6 +988,32 @@ function deleteSavedEntry(id){
   renderSavedList();
 }
 
+
+let lastCutNoticeKey = "";
+
+function renderCutNotice(r){
+  const box = $("cutNotice");
+  if(!box) return;
+  if(!r || hasTransom(r.config) || !(r.cutDown > 0.001)){
+    box.style.display = "none";
+    lastCutNoticeKey = "";
+    return;
+  }
+  const key = `${r.config}|${r.swing}|${r.slab?.w}|${r.slab?.h}|${r.finalDoorH}`;
+  const noCut = r.noCutROHeight != null ? ` To avoid cutting this door, RO height would need to be about ${fmt(r.noCutROHeight)}.` : "";
+  const text = `<strong>Door cut-down needed:</strong> Selected slab ${fmt(r.slab.h)} high will finish at ${fmt(r.finalDoorH)}. Cut down ${fmt(r.cutDown)}.${noCut}`;
+  box.innerHTML = text;
+  box.style.display = "block";
+  if(key !== lastCutNoticeKey){
+    lastCutNoticeKey = key;
+    clearTimeout(window.cutNoticeTimer);
+    window.cutNoticeTimer = setTimeout(() => {
+      if($("cutNotice")) $("cutNotice").style.display = "none";
+    }, 6500);
+  }
+}
+
+
 function renderSavedList(){
   const box = $("savedList");
   if(!box) return;
@@ -1006,26 +1136,11 @@ function centerText(ctx,text,x,y,size=20){
   ctx.fillText(text,x,y);
 }
 
-function loadTest(){
-  loadedSavedEntryId = null;
-  $("entryName").value = "Confirmed T/SDS test";
-  $("roW").value = "69";
-  $("roH").value = "95";
-  $("config").value = "T/SDS";
-  $("swing").value = "inswing";
-  $("material").value = "fiberglass";
-  $("nominal").value = "30x68";
-  $("tbarMode").value = "auto";
-  toggleCustom();
-  calculate();
-  scheduleAutoSave();
-}
-
 function reset(){
   loadedSavedEntryId = null;
   $("entryName").value = "";
-  $("roW").value = "69";
-  $("roH").value = "95";
+  $("roW").value = "";
+  $("roH").value = "";
   $("config").value = "SDS";
   $("swing").value = "inswing";
   $("material").value = "fiberglass";
@@ -1068,9 +1183,6 @@ document.querySelectorAll(".tab").forEach(btn=>{
   $(id).addEventListener("input",()=>{ toggleCustom(); calculate(); scheduleAutoSave(); });
   $(id).addEventListener("change",()=>{ toggleCustom(); calculate(); scheduleAutoSave(); });
 });
-$("calcBtn").addEventListener("click", calculate);
-$("testBtn").addEventListener("click", loadTest);
-$("resetBtn").addEventListener("click", reset);
 $("copyBtn").addEventListener("click", copyCutList);
 $("saveBtn").addEventListener("click", saveCurrentEntry);
 $("clearNameBtn").addEventListener("click", () => {
@@ -1093,7 +1205,7 @@ if ($("refreshSavedBtn")) $("refreshSavedBtn").addEventListener("click", renderS
 
 toggleCustom();
 if(!restoreAutoSavedWork()){
-  loadTest();
+  reset();
 }
 </script>
 
