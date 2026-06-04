@@ -50,3 +50,6 @@ Added recommended rough opening display for fixed-width door setups and non-tran
 
 ## V1.12 no-cut RO suggestion
 When a non-transom door needs to be cut down, the warning, popup, and cut list now show the rough opening height that would be needed to avoid cutting the selected slab.
+
+## V1.13 blocking width validation
+Added blocking validation for door-only widths where the selected slab cannot fit the entered rough opening. Fiberglass doors cannot be cut narrower. Wood doors require custom width/selecting a smaller slab when the RO is too narrow. Blocking errors are shown before normal outputs and included in the cut list as DO NOT USE.

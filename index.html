@@ -229,6 +229,24 @@
       border-color:rgba(251,191,36,.75);
       background:rgba(251,191,36,.09);
     }
+    .metric.blocking{
+      border-color:rgba(252,165,165,.85);
+      background:rgba(252,165,165,.11);
+    }
+    .blockBanner{
+      grid-column:1/-1;
+      border:1px solid rgba(252,165,165,.85);
+      background:rgba(127,29,29,.35);
+      color:#fee2e2;
+      border-radius:16px;
+      padding:14px;
+      line-height:1.4;
+    }
+    .blockBanner strong{
+      display:block;
+      font-size:1.05rem;
+      margin-bottom:4px;
+    }
     .hidden{display:none}
     .small{font-size:.82rem;color:var(--muted);line-height:1.35}
 
@@ -535,6 +553,26 @@ function getRecommendedROWidth(config, slab, headerW){
   return null;
 }
 
+function getMinimumRequiredROWidth(config, slab, headerW){
+  if(isFixedWidthDoorOnly(config)) return getRecommendedROWidth(config, slab, headerW);
+  if(hasSidelight(config)) return null;
+  return null;
+}
+
+function getDoorWidthIssue(config, material, roW, slab, headerW){
+  const minRO = getMinimumRequiredROWidth(config, slab, headerW);
+  if(minRO == null || !isFinite(minRO) || !isFinite(roW)) return null;
+  if(roW >= minRO - 0.125) return null;
+
+  if(material === "fiberglass"){
+    return `Entered RO width ${fmt(roW)} is too narrow. This fiberglass door cannot be cut narrower. Recommended RO width is ${fmt(minRO)}.`;
+  }
+  if(material === "wood"){
+    return `Entered RO width ${fmt(roW)} is too narrow for this selected wood slab. Order/select a custom narrower wood door or adjust RO width to ${fmt(minRO)}.`;
+  }
+  return `Entered RO width ${fmt(roW)} is too narrow for the selected slab. Adjust the slab or RO width. Recommended RO width is ${fmt(minRO)}.`;
+}
+
 function getRecommendedROHeight(config, finalDoorH, jambLeg, slab, swing){
   if(!isFinite(finalDoorH) || !isFinite(jambLeg)) return null;
   if(hasTransom(config)) return null;
@@ -574,6 +612,10 @@ function getSlab(){
   return DOOR_SIZES[material][$("nominal").value];
 }
 
+function getMaterial(){
+  return $("material").value;
+}
+
 function autoTbar(config){
   if(isSingleDoorTransom(config)) return { size: 1.5, reason: "Single door with transom uses 1-1/2 inch T-bar." };
   if(hasSidelight(config) || config === "T/DD") return { size: 2.25, reason: "Sidelight units and double doors with transoms use 2-1/4 inch T-bars." };
@@ -586,14 +628,16 @@ function calculate(){
   const config = $("config").value;
   const swing = $("swing").value;
   const slab = getSlab();
+  const material = getMaterial();
   const tbar = $("tbarMode").value === "custom"
     ? { size: parseInches($("tbarCustom").value), reason: "Custom T-bar override." }
     : autoTbar(config);
 
   const entryName = $("entryName") ? $("entryName").value.trim() : "";
   const result = {
-    entryName, roW, roH, config, swing, slab, tbar,
+    entryName, roW, roH, config, swing, slab, material, tbar,
     warnings: [],
+    blockingErrors: [],
     metrics: [],
     rules: [],
     cutLines: []
@@ -656,7 +700,12 @@ function calculate(){
   result.headerW = headerW;
 
   const recommendedROWidth = getRecommendedROWidth(config, slab, headerW);
+  const doorWidthIssue = getDoorWidthIssue(config, material, roW, slab, headerW);
   result.recommendedROWidth = recommendedROWidth;
+  result.doorWidthIssue = doorWidthIssue;
+  if(doorWidthIssue){
+    result.blockingErrors.push(doorWidthIssue);
+  }
 
   let sidelightW = null, sidelightH = null;
   const sc = sideCount(config);
@@ -712,9 +761,9 @@ function calculate(){
   const widthTolerance = 0.125;
   const heightTolerance = 0.25;
 
-  if(recommendedROWidth != null && isTooSmall(roW, recommendedROWidth, widthTolerance)){
+  if(!doorWidthIssue && recommendedROWidth != null && isTooSmall(roW, recommendedROWidth, widthTolerance)){
     result.warnings.push(`RO width is too small for this door setup. Recommended RO width: ${fmt(recommendedROWidth)}.`);
-  } else if(recommendedROWidth != null && isTooLarge(roW, recommendedROWidth, widthTolerance)){
+  } else if(!doorWidthIssue && recommendedROWidth != null && isTooLarge(roW, recommendedROWidth, widthTolerance)){
     result.warnings.push(`RO width is wider than needed for this door setup. Recommended RO width: ${fmt(recommendedROWidth)}.`);
   }
 
@@ -732,6 +781,9 @@ function calculate(){
   if(!hasTransom(config) && cutDown > 2.5) result.warnings.push("Door cut-down is large. Confirm before cutting.");
   if(result.heightCappedBySlab && recommendedROHeight == null) result.warnings.push("Rough opening is taller than this selected slab/unit. Door and sidelights are held to slab-based height; extra RO height is not absorbed unless this unit has a transom.");
 
+  if(result.blockingErrors.length){
+    result.metrics.push(["BLOCKING ERROR", result.blockingErrors.join(" "), "Correct this before using the calculated cut list."]);
+  }
   result.metrics.push(["Rough opening", `${fmt(roW)} x ${fmt(roH)}`, "Entered rough opening."]);
   if(recommendedROWidth != null || recommendedROHeight != null){
     const recW = recommendedROWidth != null ? fmt(recommendedROWidth) : fmt(roW);
@@ -761,6 +813,11 @@ function buildCutList(r){
   const lines = [];
   lines.push("GLASS MEASURES CUT LIST");
   if(r.entryName) lines.push(`Entry: ${r.entryName}`);
+  if(r.blockingErrors && r.blockingErrors.length){
+    lines.push("STATUS: DO NOT USE - INPUT NEEDS CORRECTION");
+    r.blockingErrors.forEach(e => lines.push(`- ${e}`));
+    lines.push("");
+  }
   lines.push("");
   lines.push(`Entered RO: ${fmt(r.roW)} W x ${fmt(r.roH)} H`);
   if(r.recommendedROWidth != null || r.recommendedROHeight != null){
@@ -801,9 +858,12 @@ function render(r){
   for(const [k,v,rule] of r.metrics || []){
     const div = document.createElement("div");
     const shouldHighlight = k === "Recommended rough opening" && r.warnings && r.warnings.some(w => w.includes("Recommended RO"));
-    div.className = "metric" + (k === "Warnings" ? " full" : "") + (shouldHighlight ? " highlight" : "");
-    const cls = k === "Warnings" ? "warn" : "";
-    div.innerHTML = `<div class="k">${escapeHtml(k)}</div><div class="v ${cls}">${escapeHtml(v)}</div><div class="r">${escapeHtml(rule)}</div>`;
+    const isBlocking = k === "BLOCKING ERROR";
+    div.className = isBlocking ? "blockBanner" : ("metric" + (k === "Warnings" ? " full" : "") + (shouldHighlight ? " highlight" : ""));
+    const cls = k === "Warnings" ? "warn" : (isBlocking ? "bad" : "");
+    div.innerHTML = isBlocking
+      ? `<strong>Do not use this calculation yet</strong><div>${escapeHtml(v)}</div><div class="r">${escapeHtml(rule)}</div>`
+      : `<div class="k">${escapeHtml(k)}</div><div class="v ${cls}">${escapeHtml(v)}</div><div class="r">${escapeHtml(rule)}</div>`;
     metrics.appendChild(div);
   }
   $("ruleText").textContent = (r.rules || []).map(x => "• " + x).join("\n") || "No rules yet.";
