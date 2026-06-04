@@ -62,3 +62,6 @@ Separated recommended rough opening width from actual header/transom width. Stoc
 
 ## V1.16 shop-accurate RO correction
 Removed the nominal-width same-RO shortcut. Single-door recommended rough opening width now uses actual slab size consistently: actual cut header = actual slab width + 1/4 inch, recommended RO width = actual cut header + 2 inches, and T/D transom glass width = actual cut header - 1/8 inch. This prevents conflicts between fiberglass and wood slab sizing.
+
+## V1.17 smaller door sizes
+Added 2'10", 2'8", and 2'6" x 6'8" door size options. D and T/D allow 2'6", 2'8", and 2'10" widths. DD and T/DD include 2'6" x 6'8". Sidelight configurations block widths smaller than 3'0" to avoid bad front-entry glass unit suggestions.

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'glass-measures-v1-16';
+const CACHE_NAME = 'glass-measures-v1-17';
 const ASSETS = [
   './',
   './index.html',

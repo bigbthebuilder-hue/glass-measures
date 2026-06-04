@@ -386,6 +386,11 @@
             <div>
               <label>Nominal slab size</label>
               <select id="nominal">
+                <option value="26x68">2'6" x 6'8"</option>
+                <option value="28x68">2'8" x 6'8"</option>
+                <option value="28x80">2'8" x 8'0"</option>
+                <option value="210x68">2'10" x 6'8"</option>
+                <option value="210x80">2'10" x 8'0"</option>
                 <option value="30x68" selected>3'0" x 6'8"</option>
                 <option value="30x80">3'0" x 8'0"</option>
                 <option value="36x68">3'6" x 6'8"</option>
@@ -486,12 +491,22 @@ const $ = id => document.getElementById(id);
 
 const DOOR_SIZES = {
   fiberglass: {
+    "26x68": { w: 29.75, h: 79, label: `Fiberglass 2'6" x 6'8"` },
+    "28x68": { w: 31.75, h: 79, label: `Fiberglass 2'8" x 6'8"` },
+    "28x80": { w: 31.75, h: 95, label: `Fiberglass 2'8" x 8'0"` },
+    "210x68": { w: 33.75, h: 79, label: `Fiberglass 2'10" x 6'8"` },
+    "210x80": { w: 33.75, h: 95, label: `Fiberglass 2'10" x 8'0"` },
     "30x68": { w: 35.75, h: 79, label: `Fiberglass 3'0" x 6'8"` },
     "30x80": { w: 35.75, h: 95, label: `Fiberglass 3'0" x 8'0"` },
     "36x68": { w: 41.75, h: 79, label: `Fiberglass 3'6" x 6'8"` },
     "36x80": { w: 41.75, h: 95, label: `Fiberglass 3'6" x 8'0"` }
   },
   wood: {
+    "26x68": { w: 30, h: 80, label: `Wood 2'6" x 6'8"` },
+    "28x68": { w: 32, h: 80, label: `Wood 2'8" x 6'8"` },
+    "28x80": { w: 32, h: 96, label: `Wood 2'8" x 8'0"` },
+    "210x68": { w: 34, h: 80, label: `Wood 2'10" x 6'8"` },
+    "210x80": { w: 34, h: 96, label: `Wood 2'10" x 8'0"` },
     "30x68": { w: 36, h: 80, label: `Wood 3'0" x 6'8"` },
     "30x80": { w: 36, h: 96, label: `Wood 3'0" x 8'0"` },
     "36x68": { w: 42, h: 80, label: `Wood 3'6" x 6'8"` },
@@ -623,9 +638,53 @@ function getMaterial(){
 
 function getNominalWidthFromSelection(){
   const nominal = $("nominal") ? $("nominal").value : "";
+  if(nominal.startsWith("26")) return 30;
+  if(nominal.startsWith("28")) return 32;
+  if(nominal.startsWith("210")) return 34;
   if(nominal.startsWith("30")) return 36;
   if(nominal.startsWith("36")) return 42;
   return null;
+}
+
+function getNominalWidthCode(){
+  const nominal = $("nominal") ? $("nominal").value : "";
+  if(nominal.startsWith("26")) return "26";
+  if(nominal.startsWith("28")) return "28";
+  if(nominal.startsWith("210")) return "210";
+  if(nominal.startsWith("30")) return "30";
+  if(nominal.startsWith("36")) return "36";
+  return "";
+}
+
+function getNominalHeightCode(){
+  const nominal = $("nominal") ? $("nominal").value : "";
+  return nominal.endsWith("80") ? "80" : "68";
+}
+
+function isSmallWidthSelected(){
+  return ["26","28","210"].includes(getNominalWidthCode());
+}
+
+function updateDoorSizeAvailability(){
+  const config = $("config") ? $("config").value : "";
+  const select = $("nominal");
+  if(!select) return;
+
+  [...select.options].forEach(opt => {
+    const widthCode = opt.value.startsWith("26") ? "26" : opt.value.startsWith("28") ? "28" : opt.value.startsWith("210") ? "210" : opt.value.startsWith("30") ? "30" : opt.value.startsWith("36") ? "36" : "";
+    const heightCode = opt.value.endsWith("80") ? "80" : "68";
+    let allowed = true;
+
+    if(hasSidelight(config) && ["26","28","210"].includes(widthCode)) allowed = false;
+    if((config === "DD" || config === "T/DD") && widthCode === "26" && heightCode !== "68") allowed = false;
+
+    opt.disabled = !allowed;
+    opt.hidden = !allowed;
+  });
+
+  if(select.selectedOptions[0] && (select.selectedOptions[0].disabled || select.selectedOptions[0].hidden)){
+    select.value = "30x68";
+  }
 }
 
 function getStandardSingleDoorHeader(material, slab){
@@ -727,6 +786,14 @@ function calculate(){
   result.doorWidthIssue = doorWidthIssue;
   if(doorWidthIssue){
     result.blockingErrors.push(doorWidthIssue);
+  }
+
+  if(hasSidelight(config) && isSmallWidthSelected()){
+    result.blockingErrors.push("Sidelight configurations should use 3'0\" or 3'6\" door widths. Smaller widths are blocked for front-entry sidelight units.");
+  }
+
+  if((config === "DD" || config === "T/DD") && getNominalWidthCode() === "26" && getNominalHeightCode() !== "68"){
+    result.blockingErrors.push("2'6\" double doors are only enabled as 2'6\" x 6'8\" in this version.");
   }
 
   let sidelightW = null, sidelightH = null;
@@ -989,6 +1056,7 @@ function applyFormState(s){
   $("tbarMode").value = s.tbarMode || "auto";
   $("tbarCustom").value = s.tbarCustom || "2 1/4";
   toggleCustom();
+  updateDoorSizeAvailability();
   calculate();
   if(!isRestoringAutoSave) scheduleAutoSave();
 }
@@ -1232,6 +1300,7 @@ function reset(){
   $("tbarMode").value = "auto";
   $("tbarCustom").value = "2 1/4";
   toggleCustom();
+  updateDoorSizeAvailability();
   calculate();
   scheduleAutoSave();
 }
@@ -1262,8 +1331,8 @@ document.querySelectorAll(".tab").forEach(btn=>{
 });
 
 ["entryName","roW","roH","config","swing","material","nominal","customW","customH","tbarMode","tbarCustom"].forEach(id=>{
-  $(id).addEventListener("input",()=>{ toggleCustom(); calculate(); scheduleAutoSave(); });
-  $(id).addEventListener("change",()=>{ toggleCustom(); calculate(); scheduleAutoSave(); });
+  $(id).addEventListener("input",()=>{ toggleCustom(); updateDoorSizeAvailability(); calculate(); scheduleAutoSave(); });
+  $(id).addEventListener("change",()=>{ toggleCustom(); updateDoorSizeAvailability(); calculate(); scheduleAutoSave(); });
 });
 $("copyBtn").addEventListener("click", copyCutList);
 $("saveBtn").addEventListener("click", saveCurrentEntry);
@@ -1279,6 +1348,7 @@ $("clearNameBtn").addEventListener("click", () => {
   $("nominal").value = "30x68";
   $("tbarMode").value = "auto";
   toggleCustom();
+  updateDoorSizeAvailability();
   calculate();
   renderSavedList();
 });
